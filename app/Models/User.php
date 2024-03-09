@@ -40,6 +40,7 @@ class User extends Authenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
-        'password' => 'hashed', // he did comment this out...
+        'password' => 'hashed', // he did comment this out...,
+        // 'avatar_url' => 'url'
     ];
 }

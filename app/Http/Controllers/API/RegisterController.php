@@ -48,13 +48,23 @@ class RegisterController extends BaseController
 
             /** @var \App\Models\User $user **/
             $user = Auth::user();
-            $user->tokens()->delete();
+            // $user->tokens()->delete();
+            // $user->remember_token = null; //added
+            // $user->save(); // added
             $success['token'] =  $user->createToken('MyApp')->plainTextToken;
-            $success['name'] =  $user->name;
 
-            return $this->sendResponse($success, 'User login successfully.');
+            // return $this->sendResponse($success, 'Checking token.');
+
+            $success['name'] =  $user->name;
+            $success['avatar'] = null; // added
+
+            // this whole if statement was added, but the return statement after was already there
+            if (isset($user->avatar)) {
+                $success['avatar'] = $this->getS3Url($user->avatar);
+            }
+            return $this->sendResponse($success, 'User login successful.');
         } else {
-            return $this->sendError('Access Denied.', ['error' => 'Unauthorised']);
+            return $this->sendError('Access Denied.', ['error' => 'Unauthorized']);
         }
     }
 
@@ -68,10 +78,14 @@ class RegisterController extends BaseController
      */
     public function logout(Request $request)
     {
-
         $user = User::find($request->id);
         $user->tokens()->where('id', $request->token)->delete();
         $success['id'] =  $request->id;
+
         return $this->sendResponse($success, 'User logout successful. Token cleared.');
+    }
+
+    public function forgotPassword(Request $request)
+    {
     }
 }
