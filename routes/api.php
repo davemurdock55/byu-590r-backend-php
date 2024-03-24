@@ -4,7 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\UserController;
-
+use App\Http\Controllers\API\BooksController;
+use App\Http\Controllers\API\RatingsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -37,4 +38,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('user/send_verification_email', 'sendVerificationEmail');
         Route::post('user/change_email', 'changeEmail');
     });
+
+    // this links up to all the resource action stuff that we got when we made BooksController using php artisan make:controller --resource
+    Route::resource('books', BooksController::class);
+    Route::controller(BooksController::class)->group(function () {
+        Route::post('books/{id}/update_book_cover', 'updateBookCover');
+        Route::post('books/{id}/remove_book_cover', 'removeBookCover');
+    });
+
+    Route::resource('ratings', RatingsController::class);
 });
