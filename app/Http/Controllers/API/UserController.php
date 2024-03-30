@@ -25,26 +25,27 @@ class UserController extends BaseController
 		$user->load('readingList.books.author', 'readingList.books.reviews');
 
 		// Modify each book to get the S3 URL for the cover image and calculate ratings
-		foreach ($user->readingList->books as $book) {
-			$book->cover = $this->getS3Url($book->cover);
+		if ($user->reading_list) {
+			foreach ($user->readingList->books as $book) {
+				$book->cover = $this->getS3Url($book->cover);
 
-			$totalRating = 0;
-			$ratingCount = 0;
+				$totalRating = 0;
+				$ratingCount = 0;
 
-			// Calculate total rating and count
-			foreach ($book->reviews as $review) {
-				$totalRating += (float)$review->pivot->rating;
-				$ratingCount++;
+				// Calculate total rating and count
+				foreach ($book->reviews as $review) {
+					$totalRating += (float)$review->pivot->rating;
+					$ratingCount++;
+				}
+
+				// Calculate average rating
+				$averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
+
+				// Set overall_review and rating_count attributes for the book
+				$book->overall_rating = $averageRating;
+				$book->rating_count = $ratingCount;
 			}
-
-			// Calculate average rating
-			$averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
-
-			// Set overall_review and rating_count attributes for the book
-			$book->overall_rating = $averageRating;
-			$book->rating_count = $ratingCount;
 		}
-
 		// THIS should definitely work and should also pull in the reading list as well :)
 		// $user = User::where($authUser->id, 'id')->with(['reading_list'])->first();
 

@@ -7,6 +7,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
+use App\Models\ReadingList;
+use Illuminate\Support\Facades\Log;
 
 
 class RegisterController extends BaseController
@@ -30,7 +32,16 @@ class RegisterController extends BaseController
         }
         $input = $request->all();
         $input['password'] = bcrypt($input['password']);
+        // $input['reading_list_id'] = $input['id'];
         $user = User::create($input);
+
+        $readingList = ReadingList::create([
+            'user_id' => $user->id,
+            'name' => 'Default Reading List', // You can set a default name if needed
+            'description' => 'Default description', // You can set a default description if needed
+            'status' => 'Active' // You can set a default status if needed
+        ]);
+
         $success['token'] =  $user->createToken('MyApp')->plainTextToken;
         $success['name'] =  $user->name;
         return $this->sendResponse($success, 'User register successful.');
