@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Auth;
 use App\Models\User;
 use App\Models\ReadingList;
+use Illuminate\Http\Response;
+
+
 use Illuminate\Support\Facades\Log;
 
 
@@ -32,7 +35,6 @@ class RegisterController extends BaseController
         }
         $input = $request->all();
         $input['password'] = bcrypt($input['password']);
-        // $input['reading_list_id'] = $input['id'];
         $user = User::create($input);
 
         $readingList = ReadingList::create([
@@ -44,7 +46,7 @@ class RegisterController extends BaseController
 
         $success['token'] =  $user->createToken('MyApp')->plainTextToken;
         $success['name'] =  $user->name;
-        return $this->sendResponse($success, 'User register successful.');
+        return $this->sendResponse($success, 'User register successful.', Response::HTTP_OK);
     }
 
 
