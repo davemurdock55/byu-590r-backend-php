@@ -15,7 +15,39 @@ class UserController extends BaseController
 	public function getUser()
 	{
 		$authUser = Auth::user();
+		// trying to use a 'with' and 'get()' on findOrFail
 		$user = User::findOrFail($authUser->id); // findOrFail gets the first object in the database where the id is equal to the id you're logged in as and return the first it finds (if it doesn't find anything, it fails)
+
+		// Load the 'reading_list' relationship with its 'books' relationship
+		$user->load('readingList.books.author');
+
+		// Load the 'reading_list' relationship with its 'books' relationship
+		$user->load('readingList.books.author', 'readingList.books.reviews');
+
+		// Modify each book to get the S3 URL for the cover image and calculate ratings
+		foreach ($user->readingList->books as $book) {
+			$book->cover = $this->getS3Url($book->cover);
+
+			$totalRating = 0;
+			$ratingCount = 0;
+
+			// Calculate total rating and count
+			foreach ($book->reviews as $review) {
+				$totalRating += (float)$review->pivot->rating;
+				$ratingCount++;
+			}
+
+			// Calculate average rating
+			$averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
+
+			// Set overall_review and rating_count attributes for the book
+			$book->overall_rating = $averageRating;
+			$book->rating_count = $ratingCount;
+		}
+
+		// THIS should definitely work and should also pull in the reading list as well :)
+		// $user = User::where($authUser->id, 'id')->with(['reading_list'])->first();
+
 		$user->avatar = $this->getS3Url($user->avatar); // getS3Url is combining the aws bucket url and its hash with the rest of the path (stored in "avatar") and temporarily overwriting that by doing user->avatar
 
 		return $this->sendResponse($user, 'User');

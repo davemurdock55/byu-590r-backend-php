@@ -11,7 +11,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        //
+        Schema::dropIfExists('reading_list_books');
+
+        Schema::create('reading_list_books', function (Blueprint $table) {
+            $table->id();
+            $table->integer('reading_list_id');
+            $table->integer('book_id');
+        });
     }
 
     /**
@@ -19,7 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
-        Schema::dropIfExists('ratings');
+        Schema::dropIfExists('reading_list_books');
     }
 };

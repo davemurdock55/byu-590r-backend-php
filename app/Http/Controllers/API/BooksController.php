@@ -23,13 +23,26 @@ class BooksController extends BaseController
         // gets all books
         // $books = Book::get(); // could also do ::all(), but less useful???
         // gets all the books ordered by title in ascending order
-        $books = Book::orderBy('id', 'asc')->get();
-        // $books = Book::orderBy('id', 'asc')->with(['series.authors'])->get();
+        // $books = Book::orderBy('id', 'asc')->get();
+        $books = Book::orderBy('id', 'asc')->with(['reviews', 'author'])->get();
         // you can do ->with to get from a many-to-many relationship
 
         foreach ($books as $book) {
             // gets /images/book_cover_img_1.png and replaces it with something like https://aws.console.fas.dfas/images/book_cover_img_1.png (or something like that)
             $book->cover = $this->getS3Url($book->cover);
+
+            $totalRating = 0;
+            $ratingCount = 0;
+
+            foreach ($book->reviews as $review) {
+                $totalRating += (float)$review->pivot->rating;
+                $ratingCount++;
+            }
+
+            $averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
+
+            $book->overall_rating = $averageRating;
+            $book->rating_count = $ratingCount;
         }
 
         return $this->sendResponse($books, "books retrieved!");

@@ -11,13 +11,14 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::dropIfExists('publishers');
-        // id
-        // publisher name
-        Schema::create('publishers', function (Blueprint $table) {
+        Schema::dropIfExists('authors');
+
+        Schema::create('authors', function (Blueprint $table) {
             $table->id();
-            $table->string('publisher_name');
-            $table->timestamps(); // creates created at, updated at, deleted at in the DB table
+            $table->string('name');
+            $table->string('description')->nullable();
+            // $table->string('profile_image')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -26,7 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        //
-        Schema::dropIfExists('publishers');
+        Schema::dropIfExists('authors');
     }
 };
