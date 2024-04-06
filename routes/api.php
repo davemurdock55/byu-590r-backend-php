@@ -6,6 +6,7 @@ use App\Http\Controllers\API\RegisterController;
 use App\Http\Controllers\API\UserController;
 use App\Http\Controllers\API\BooksController;
 use App\Http\Controllers\API\RatingsController;
+use App\Http\Controllers\API\AuthorsController;
 
 /*
 |--------------------------------------------------------------------------
@@ -47,4 +48,5 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::resource('ratings', RatingsController::class);
+    Route::resource('authors', AuthorsController::class);
 });

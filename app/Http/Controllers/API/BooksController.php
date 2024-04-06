@@ -156,7 +156,7 @@ class BooksController extends BaseController
         //
         $validator = Validator::make($request->all(), [
             'title' => 'required',
-            'author' => 'required',
+            'author_id' => 'required',
             // 'date_published' => 'nullable|date_format:Y-m-d', // Check date format
         ]);
 
@@ -196,10 +196,10 @@ class BooksController extends BaseController
 
         $book->title = $request['title'];
         $book->series = $request['series'];
-        $book->author = $request['author'];
+        $book->author_id = $request['author_id'];
         // we already got $book->cover
         $book->description = $request['description'];
-        $book->rating = $request['rating'];
+        // $book->rating = $request['rating'];
         // we already got date_published (Supposedly. If that doesn't work, just remove the code for that and make it like the rest)
 
         $book->save();
