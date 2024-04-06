@@ -39,7 +39,7 @@ class BooksCommand extends Command
 
         $books = Book::all(); // could replace "all()" with "get()"
 
-        error_log($books);
+        // error_log($books);
 
         if ($books->count() > 0) {
             Mail::to($sendToEmail)->send(new BooksReportMail($books));

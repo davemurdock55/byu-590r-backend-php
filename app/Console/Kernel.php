@@ -14,7 +14,7 @@ class Kernel extends ConsoleKernel
     {
         // $schedule->command('inspire')->hourly();
         // scheduling a report of all the books. For the milestone, this is set to "everyMinute()", but then change it to "weekly()" and re-push
-        $schedule->command('report:books --email=davemurdock55@gmail.com')->everyMinute();
+        $schedule->command('report:books --email=davemurdock55@gmail.com')->yearly();
     }
 
     /**

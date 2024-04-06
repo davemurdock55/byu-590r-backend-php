@@ -24,8 +24,6 @@ Hello app owner. Here is the list of all the books available on Book Haven:
 			<td>{{$book->date_published}}</td>
 			<td>{{$book->created_at}}</td>
 			<td>{{$book->updated_at}}</td>
-
-
 		</tr>
 		@endforeach
 
