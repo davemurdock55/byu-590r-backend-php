@@ -54,8 +54,8 @@ class BooksController extends BaseController
         $book->overall_rating = $averageRating;
         $book->rating_count = $ratingCount;
 
-        Log::info("Finished adding things to the book");
-        Log::info($book);
+        // Log::info("Finished adding things to the book");
+        // Log::info($book);
 
         return $book;
     }
@@ -83,6 +83,8 @@ class BooksController extends BaseController
             $ratingCount = 0;
 
             foreach ($book->reviews as $review) {
+                $review->avatar = $this->getS3Url($review->avatar);
+
                 $totalRating += (float)$review->pivot->rating;
                 $ratingCount++;
             }
@@ -110,8 +112,8 @@ class BooksController extends BaseController
     // CREATE
     public function store(Request $request)
     {
-        Log::info("about to validate");
-        Log::info($request);
+        // Log::info("about to validate");
+        // Log::info($request);
         //
         $validator = Validator::make($request->all(), [
             'title' => 'required',

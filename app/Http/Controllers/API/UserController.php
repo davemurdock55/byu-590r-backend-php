@@ -13,18 +13,8 @@ use Illuminate\Support\Facades\Storage;
 
 class UserController extends BaseController
 {
-	public function getUser()
+	public function loadUserInformation($user)
 	{
-		$authUser = Auth::user();
-		// trying to use a 'with' and 'get()' on findOrFail
-		$user = User::findOrFail($authUser->id); // findOrFail gets the first object in the database where the id is equal to the id you're logged in as and return the first it finds (if it doesn't find anything, it fails)
-
-		// Load the 'reading_list' relationship with its 'books' relationship
-		// 		$user->load('readingList.books.author');
-		// 
-		// 		// Load the 'reading_list' relationship with its 'books' relationship
-		// 		$user->load('readingList.books.author', 'readingList.books.reviews');
-
 		$user->load([
 			'readingList.books' => function ($query) {
 				$query->orderBy('reading_list_books.id');
@@ -59,6 +49,23 @@ class UserController extends BaseController
 		// $user = User::where($authUser->id, 'id')->with(['reading_list'])->first();
 
 		$user->avatar = $this->getS3Url($user->avatar); // getS3Url is combining the aws bucket url and its hash with the rest of the path (stored in "avatar") and temporarily overwriting that by doing user->avatar
+
+		return $user;
+	}
+
+	public function getUser()
+	{
+		$authUser = Auth::user();
+		// trying to use a 'with' and 'get()' on findOrFail
+		$user = User::findOrFail($authUser->id); // findOrFail gets the first object in the database where the id is equal to the id you're logged in as and return the first it finds (if it doesn't find anything, it fails)
+
+		// Load the 'reading_list' relationship with its 'books' relationship
+		// 		$user->load('readingList.books.author');
+		// 
+		// 		// Load the 'reading_list' relationship with its 'books' relationship
+		// 		$user->load('readingList.books.author', 'readingList.books.reviews');
+
+		$user = $this->loadUserInformation($user);
 
 		return $this->sendResponse($user, 'User');
 	}
@@ -144,6 +151,45 @@ class UserController extends BaseController
 			}
 		}
 
-		// Additional logic or return a response
+		// Send back the response (send back the whole user)
+
+		// get the information for the user
+		$user = $this->loadUserInformation($authUser);
+
+		// Send back the updated user with the reading list and books
+		$success['user'] = $user;
+		return $this->sendResponse($success, 'Book successfully added.');
+	}
+
+	public function removeBookFromReadingList(Request $request, $id)
+	{
+		// Get the book ID from the request
+		// $bookId = $request->input('id');
+		$bookId = $id;
+
+		// Get the authenticated user
+		$authUser = Auth::user();
+		$user = User::findOrFail($authUser->id);
+
+		// Find the user's reading list
+		$readingList = $user->readingList;
+
+		// Find the book in the user's reading list
+		$book = $readingList->books()->where('books.id', $bookId)->first();
+
+		if ($book) {
+			// Detach (remove) the book from the reading list
+			$readingList->books()->detach($bookId);
+
+			// Optionally, you can reload the books relationship
+			$readingList->load('books');
+		}
+
+		// get the information for the user
+		$user = $this->loadUserInformation($user);
+
+		// Send back the updated user with the reading list and books
+		$success['user'] = $user;
+		return $this->sendResponse($success, 'Book successfully removed.');
 	}
 }
