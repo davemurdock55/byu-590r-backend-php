@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('user/remove_avatar', 'removeAvatar');
         Route::post('user/send_verification_email', 'sendVerificationEmail');
         Route::post('user/change_email', 'changeEmail');
+        Route::post('user/add_books_to_reading_list', 'addBooksToReadingList');
     });
 
     // this links up to all the resource action stuff that we got when we made BooksController using php artisan make:controller --resource

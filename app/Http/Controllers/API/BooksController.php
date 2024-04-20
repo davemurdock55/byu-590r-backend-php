@@ -12,6 +12,54 @@ use Illuminate\Support\Facades\Validator;
 
 class BooksController extends BaseController
 {
+    // receives the request (which should have a book object in it)
+    // and receives the $book we want to update
+    public function formatDate($request, $book)
+    {
+        $datePublished = null;
+        if ($request->has('date_published') && $request->input('date_published') !== null) {
+            // Transform the date to YYYY-MM-DD format using Carbon
+            $datePublished = Carbon::createFromFormat('Y-m-d', $request->input('date_published'))->format('Y-m-d');
+            $book->date_published = $datePublished;
+        }
+
+        return $book;
+    }
+
+    // gets all the info we need before sending a book (back) to the frontend
+    public function getBookInfo($id)
+    {
+        // create the book we send back to update the state with (using $book->id instead of the passed "$id" just to be super explicit so that it lines up with what we changed)
+        $book = Book::where('id', $id)->with(['reviews', 'author'])->first();
+
+
+        // grabbing the S3 image url (in place of the "local" type one)
+        // gets /images/book_cover_img_1.png and replaces it with something like https://aws.console.fas.dfas/images/book_cover_img_1.png (or something like that)
+        if (isset($book->cover)) {
+            $book->cover = $this->getS3Url($book->cover);
+        }
+
+
+        // grabbing the ratings
+        $totalRating = 0;
+        $ratingCount = 0;
+
+        foreach ($book->reviews as $review) {
+            $totalRating += (float)$review->pivot->rating;
+            $ratingCount++;
+        }
+
+        $averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
+
+        $book->overall_rating = $averageRating;
+        $book->rating_count = $ratingCount;
+
+        Log::info("Finished adding things to the book");
+        Log::info($book);
+
+        return $book;
+    }
+
     /**
      * Display a listing of the resource.
      */
@@ -62,10 +110,12 @@ class BooksController extends BaseController
     // CREATE
     public function store(Request $request)
     {
+        Log::info("about to validate");
+        Log::info($request);
         //
         $validator = Validator::make($request->all(), [
             'title' => 'required',
-            'author' => 'required',
+            'author_id' => 'required',
             'cover' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg', // he put 'required|' at the start like this: 'required|image|mimes:jpeg,png,jpg,gif,svg'
             'date_published' => 'nullable|date|date_format:Y-m-d', // Add date validation with format
         ]);
@@ -95,29 +145,32 @@ class BooksController extends BaseController
         }
 
         // Handle date formatting and transformation
-        $datePublished = null;
-        if ($request->has('date_published') && $request->input('date_published') !== null) {
-            // Transform the date to YYYY-MM-DD format using Carbon
-            $datePublished = Carbon::createFromFormat('Y-m-d', $request['date_published'])->format('Y-m-d');
-            $book->date_published = $datePublished;
-        }
+        // $datePublished = null;
+        // if ($request->has('date_published') && $request->input('date_published') !== null) {
+        //     // Transform the date to YYYY-MM-DD format using Carbon
+        //     $datePublished = Carbon::createFromFormat('Y-m-d', $request['date_published'])->format('Y-m-d');
+        //     $book->date_published = $datePublished;
+        // }
+
+        $book = $this->formatDate($request, $book);
 
 
         $book->title = $request['title'];
         $book->series = $request['series'];
-        $book->author = $request['author'];
+        $book->author_id = $request['author_id'];
         // we already got $book->cover
         $book->description = $request['description'];
-        $book->rating = $request['rating'];
+        // $book->rating = $request['rating'];
         // we already got date_published (Supposedly. If that doesn't work, just remove the code for that and make it like the rest)
 
         $book->save();
 
-        if (isset($book->cover)) {
-            $book->cover = $this->getS3Url($book->cover);
-        }
+        // if (isset($book->cover)) {
+        //     $book->cover = $this->getS3Url($book->cover);
+        // }
+        $response_book = $this->getBookInfo($book->id);
 
-        $success['book'] = $book;
+        $success['book'] = $response_book;
         return $this->sendResponse($success, 'Book successfully added.');
     }
 
@@ -133,9 +186,11 @@ class BooksController extends BaseController
         // $books = Book::where('id', $id)->with(['series.authors'])->first();
         $book = Book::where('id', $id)->first();
 
-        $book->cover = $this->getS3Url($book->cover);
+        // $book->cover = $this->getS3Url($book->cover);
+        $response_book = $this->getBookInfo($book->id);
 
-        return $this->sendResponse($book, 'book');
+        $success['book'] = $response_book;
+        return $this->sendResponse($success, 'Book successfully retrieved.');
     }
 
     /**
@@ -186,12 +241,14 @@ class BooksController extends BaseController
             $book->cover = $path;
         }
 
-        $datePublished = null;
-        if ($request->has('date_published') && $request->input('date_published') !== null) {
-            // Transform the date to YYYY-MM-DD format using Carbon
-            $datePublished = Carbon::createFromFormat('Y-m-d', $request->input('date_published'))->format('Y-m-d');
-            $book->date_published = $datePublished;
-        }
+        // $datePublished = null;
+        // if ($request->has('date_published') && $request->input('date_published') !== null) {
+        //     // Transform the date to YYYY-MM-DD format using Carbon
+        //     $datePublished = Carbon::createFromFormat('Y-m-d', $request->input('date_published'))->format('Y-m-d');
+        //     $book->date_published = $datePublished;
+        // }
+
+        $book = $this->formatDate($request, $book);
 
 
         $book->title = $request['title'];
@@ -204,11 +261,32 @@ class BooksController extends BaseController
 
         $book->save();
 
-        if (isset($book->cover)) {
-            $book->cover = $this->getS3Url($book->cover);
-        }
+        // create the book we send back to update the state with (using $book->id instead of the passed "$id" just to be super explicit so that it lines up with what we changed)
+        //         $response_book = Book::where('id', $book->id)->with(['reviews', 'author'])->first();
+        // 
+        //         // grabbing the S3 image url (in place of the "local" type one)
+        //         if (isset($response_book->cover)) {
+        //             $response_book->cover = $this->getS3Url($response_book->cover);
+        //         }
+        // 
+        //         // grabing the ratings
+        //         $totalRating = 0;
+        //         $ratingCount = 0;
+        // 
+        //         foreach ($response_book->reviews as $review) {
+        //             $totalRating += (float)$review->pivot->rating;
+        //             $ratingCount++;
+        //         }
+        // 
+        //         $averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
+        // 
+        //         $response_book->overall_rating = $averageRating;
+        //         $response_book->rating_count = $ratingCount;
 
-        $success['book'] = $book;
+        $response_book = $this->getBookInfo($book->id);
+
+        // setting the response_book into the response's 'book' so that we don't have to change the frontend
+        $success['book'] = $response_book;
         return $this->sendResponse($success, 'Book successfully updated.');
     }
 

@@ -6,6 +6,7 @@ use App\Mail\VerifyEmail;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,10 +20,18 @@ class UserController extends BaseController
 		$user = User::findOrFail($authUser->id); // findOrFail gets the first object in the database where the id is equal to the id you're logged in as and return the first it finds (if it doesn't find anything, it fails)
 
 		// Load the 'reading_list' relationship with its 'books' relationship
-		$user->load('readingList.books.author');
+		// 		$user->load('readingList.books.author');
+		// 
+		// 		// Load the 'reading_list' relationship with its 'books' relationship
+		// 		$user->load('readingList.books.author', 'readingList.books.reviews');
 
-		// Load the 'reading_list' relationship with its 'books' relationship
-		$user->load('readingList.books.author', 'readingList.books.reviews');
+		$user->load([
+			'readingList.books' => function ($query) {
+				$query->orderBy('reading_list_books.id');
+			},
+			'readingList.books.author',
+			'readingList.books.reviews',
+		]);
 
 		// Modify each book to get the S3 URL for the cover image and calculate ratings
 
@@ -108,5 +117,33 @@ class UserController extends BaseController
 		$user->save();
 		$success['avatar'] = null;
 		return $this->sendResponse($success, 'User profile avatar removed successfully.');
+	}
+
+	public function addBooksToReadingList(Request $request)
+	{
+		$authUser = Auth::user();
+		$readingList = $authUser->readingList;
+
+		if ($readingList) {
+			Log::info($request->all());
+
+			$bookObjects = $request->all();
+			$bookIds = array_column($bookObjects, 'id');
+
+			if (is_array($bookIds) && !empty($bookIds)) {
+				// Get the existing book IDs associated with the reading list
+				$existingBookIds = $readingList->books()->pluck('books.id')->toArray();
+
+				// Filter out the existing book IDs from the new book IDs
+				$newBookIds = array_diff($bookIds, $existingBookIds);
+
+				// Attach the new book IDs to the reading list
+				if (!empty($newBookIds)) {
+					$readingList->books()->attach($newBookIds);
+				}
+			}
+		}
+
+		// Additional logic or return a response
 	}
 }
