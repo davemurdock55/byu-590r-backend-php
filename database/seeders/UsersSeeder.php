@@ -30,7 +30,7 @@ class UsersSeeder extends Seeder
                 'name' => 'John Christiansen',
                 'email' => 'jc12996@byu.edu',
                 'password' =>  bcrypt('Funnybunny1998!'), // some random password, e.g. Funnybunny1998!
-                'avatar' => "images/1710371696_2.jpeg",
+                'avatar' => "images/1712199912_2.jpg",
                 'reading_list_id' => 2,
                 'email_verified_at' => null,
                 'created_at' => Carbon::now(),

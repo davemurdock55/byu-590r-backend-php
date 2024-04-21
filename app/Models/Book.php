@@ -36,31 +36,12 @@ class Book extends Model
     {
         // 'reading_list_books' is the bridge/join table between books and reading_lists
         // return $this->belongsToMany(Review::class, 'reviews', 'book_id', 'review_id');
-        return $this->belongsToMany(User::class, 'reviews', 'book_id', 'user_id')->withPivot('rating', 'comment');
+        return $this->belongsToMany(User::class, 'reviews', 'book_id', 'user_id')->withPivot('id', 'user_id', 'rating', 'comment')->withTimestamps();
     }
 
-    // public function readingLists(): BelongsToMany
-    // {
-    //     return $this->belongsToMany(ReadingList::class, 'reading_list_books', 'book_id', 'reading_list_id');
-    // }
 
     public function reading_lists(): BelongsToMany
     {
         return $this->belongsToMany(ReadingList::class, 'reading_list_books', 'book_id', 'reading_list_id');
     }
-
-
-    // public function reviews(): HasMany
-    // {
-    //     // 'reading_list_books' is the bridge/join table between books and reading_lists
-    //     return $this->hasMany(Review::class, 'reviews', 'book_id', 'review_id');
-    // }
-
-    // public function reading_lists(): BelongsToMany
-    // {
-    //     // 'reading_list_books' is the bridge/join table between books and reading_lists
-    //     // it goes: class, name_of_table_in_db/migration, id_in_reading_lists_table, id_of_reading_lists_as_written_in_book_table
-    //     return $this->belongsToMany(ReadingList::class, 'reading_list_books', 'book_id', 'reading_list_id');
-    //     // return $this->belongsToMany(ReadingList::class, 'reading_list_books', 'book_id')->withPivot('reading_list_id');
-    // }
 }

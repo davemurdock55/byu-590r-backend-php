@@ -3,63 +3,17 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Book;
+use App\Models\Review;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
 
 
 class BooksController extends BaseController
 {
-    // receives the request (which should have a book object in it)
-    // and receives the $book we want to update
-    public function formatDate($request, $book)
-    {
-        $datePublished = null;
-        if ($request->has('date_published') && $request->input('date_published') !== null) {
-            // Transform the date to YYYY-MM-DD format using Carbon
-            $datePublished = Carbon::createFromFormat('Y-m-d', $request->input('date_published'))->format('Y-m-d');
-            $book->date_published = $datePublished;
-        }
-
-        return $book;
-    }
-
-    // gets all the info we need before sending a book (back) to the frontend
-    public function getBookInfo($id)
-    {
-        // create the book we send back to update the state with (using $book->id instead of the passed "$id" just to be super explicit so that it lines up with what we changed)
-        $book = Book::where('id', $id)->with(['reviews', 'author'])->first();
-
-
-        // grabbing the S3 image url (in place of the "local" type one)
-        // gets /images/book_cover_img_1.png and replaces it with something like https://aws.console.fas.dfas/images/book_cover_img_1.png (or something like that)
-        if (isset($book->cover)) {
-            $book->cover = $this->getS3Url($book->cover);
-        }
-
-
-        // grabbing the ratings
-        $totalRating = 0;
-        $ratingCount = 0;
-
-        foreach ($book->reviews as $review) {
-            $totalRating += (float)$review->pivot->rating;
-            $ratingCount++;
-        }
-
-        $averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
-
-        $book->overall_rating = $averageRating;
-        $book->rating_count = $ratingCount;
-
-        // Log::info("Finished adding things to the book");
-        // Log::info($book);
-
-        return $book;
-    }
-
     /**
      * Display a listing of the resource.
      */
@@ -75,25 +29,14 @@ class BooksController extends BaseController
         $books = Book::orderBy('id', 'asc')->with(['reviews', 'author'])->get();
         // you can do ->with to get from a many-to-many relationship
 
-        foreach ($books as $book) {
-            // gets /images/book_cover_img_1.png and replaces it with something like https://aws.console.fas.dfas/images/book_cover_img_1.png (or something like that)
-            $book->cover = $this->getS3Url($book->cover);
-
-            $totalRating = 0;
-            $ratingCount = 0;
-
-            foreach ($book->reviews as $review) {
-                $review->avatar = $this->getS3Url($review->avatar);
-
-                $totalRating += (float)$review->pivot->rating;
-                $ratingCount++;
-            }
-
-            $averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
-
-            $book->overall_rating = $averageRating;
-            $book->rating_count = $ratingCount;
+        foreach ($books as $key => $book) {
+            $books[$key] = $this->getBookInfo($book->id);
         }
+
+
+        // foreach ($books as $book) {
+        //     $book = $this->getBookInfo($book->id);
+        // }
 
         return $this->sendResponse($books, "books retrieved!");
     }
@@ -328,11 +271,9 @@ class BooksController extends BaseController
 
         $book->save();
 
-        if (isset($book->cover)) {
-            $book->cover = $this->getS3Url($book->cover);
-        }
+        $response_book = $this->getBookInfo($book->id);
 
-        $success['book'] = $book;
+        $success['book'] = $response_book;
         return $this->sendResponse($success, 'Book cover successfully updated.');
     }
 
@@ -344,10 +285,46 @@ class BooksController extends BaseController
         $book->cover = null;
         $book->save();
 
-        $success['book'] = $book;
+        $response_book = $this->getBookInfo($book->id);
 
+        $success['book'] = $response_book;
         return $this->sendResponse($success, 'Book cover removed successfully.');
     }
+
+    public function addReview(Request $request)
+    {
+        $validatedData = $request->validate([
+            'id' => 'required|exists:books,id',
+            'newReview.rating' => 'required|numeric|min:0|max:5',
+            'newReview.comment' => 'nullable|string',
+        ]);
+
+        $book = Book::findOrFail($validatedData['id']);
+        $authUser = Auth::user();
+
+        $review = new Review([
+            'user_id' => $authUser->id,
+            'book_id' => $book->id, // Set the book_id here
+            'rating' => $validatedData['newReview']['rating'],
+            'comment' => $validatedData['newReview']['comment'] ?? null,
+        ]);
+
+        $review->save(); // Save the review
+        Log::info($review);
+        Log::info($review->id);
+
+        $responseBook = $this->getBookInfo($book->id);
+        // Log::info($responseBook);
+
+        return $this->sendResponse($responseBook, 'Review added successfully.');
+    }
+
+
+
+    //
+    //     public function removeReview(Request $request,){
+    //         
+    //     }
 
     /**
      * Remove the specified resource from storage.

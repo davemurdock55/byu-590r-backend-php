@@ -3,16 +3,18 @@
 namespace App\Http\Controllers\API;
 
 use App\Mail\VerifyEmail;
+use App\Models\Book;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Storage;
-
+use App\Http\Controllers\API\BooksController\getBookInfo;
 
 class UserController extends BaseController
 {
+
 	public function loadUserInformation($user)
 	{
 		$user->load([
@@ -25,25 +27,16 @@ class UserController extends BaseController
 
 		// Modify each book to get the S3 URL for the cover image and calculate ratings
 
-		foreach ($user->readingList->books as $book) {
-			$book->cover = $this->getS3Url($book->cover);
-
-			$totalRating = 0;
-			$ratingCount = 0;
-
-			// Calculate total rating and count
-			foreach ($book->reviews as $review) {
-				$totalRating += (float)$review->pivot->rating;
-				$ratingCount++;
-			}
-
-			// Calculate average rating
-			$averageRating = $ratingCount > 0 ? $totalRating / $ratingCount : 0;
-
-			// Set overall_review and rating_count attributes for the book
-			$book->overall_rating = $averageRating;
-			$book->rating_count = $ratingCount;
+		foreach ($user->readingList->books as $key => $book) {
+			$user->readingList->books[$key] = $this->getBookInfo($book->id);
 		}
+
+
+		// 		foreach ($user->readingList->books as $book) {
+		// 
+		// 			$book = $this->getBookInfo($book->id);
+		// 			Log::info($book->cover);
+		// 		}
 
 		// THIS should definitely work and should also pull in the reading list as well :)
 		// $user = User::where($authUser->id, 'id')->with(['reading_list'])->first();
@@ -132,7 +125,7 @@ class UserController extends BaseController
 		$readingList = $authUser->readingList;
 
 		if ($readingList) {
-			Log::info($request->all());
+			// Log::info($request->all());
 
 			$bookObjects = $request->all();
 			$bookIds = array_column($bookObjects, 'id');
