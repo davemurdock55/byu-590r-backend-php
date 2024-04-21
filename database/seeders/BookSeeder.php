@@ -16,7 +16,7 @@ class BookSeeder extends Seeder
     {
         $books = [
             [
-                'title' => 'Way of Kings',
+                'title' => 'The Way of Kings',
                 'series' => "Stormlight Archive",
                 'author_id' => 1,
                 'cover' => "/images/book_covers/Way_of_Kings_cover.png",

@@ -310,8 +310,8 @@ class BooksController extends BaseController
         ]);
 
         $review->save(); // Save the review
-        Log::info($review);
-        Log::info($review->id);
+        // Log::info($review);
+        // Log::info($review->id);
 
         $responseBook = $this->getBookInfo($book->id);
         // Log::info($responseBook);
@@ -324,10 +324,10 @@ class BooksController extends BaseController
 
     public function removeReview(Request $request, $id)
     {
-        Log::info($id);
+        // Log::info($id);
 
         $review = Review::findOrFail($id);
-        Log::info($review);
+        // Log::info($review);
 
         $book = Review::findOrFail($review->book_id);
 
@@ -350,6 +350,12 @@ class BooksController extends BaseController
         if ($book->cover) {
             Storage::disk('s3')->delete($book->cover);
         }
+
+        // Delete all reviews associated with the book
+        $book->reviews()->detach();
+
+        // Remove the book from all reading lists it is part of
+        $book->reading_lists()->detach();
 
 
         $book->delete();
