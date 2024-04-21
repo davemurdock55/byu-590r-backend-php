@@ -321,10 +321,21 @@ class BooksController extends BaseController
 
 
 
-    //
-    //     public function removeReview(Request $request,){
-    //         
-    //     }
+
+    public function removeReview(Request $request, $id)
+    {
+        Log::info($id);
+
+        $review = Review::findOrFail($id);
+        Log::info($review);
+
+        $book = Review::findOrFail($review->book_id);
+
+        $review->delete();
+
+        $responseBook = $this->getBookInfo($book->id);
+        return $this->sendResponse($responseBook, 'Review added successfully.');
+    }
 
     /**
      * Remove the specified resource from storage.

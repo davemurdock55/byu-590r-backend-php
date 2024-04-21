@@ -48,7 +48,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('books/{id}/update_book_cover', 'updateBookCover');
         Route::post('books/{id}/remove_book_cover', 'removeBookCover');
         Route::post('books/add_review', 'addReview');
-        Route::post('books/remove_review', 'removeReview');
+        Route::post('books/{id}/remove_review', 'removeReview');
     });
 
     Route::resource('ratings', RatingsController::class);
